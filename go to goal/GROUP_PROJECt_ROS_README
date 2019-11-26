@@ -1,0 +1,100 @@
+move_to_goal.py:
+
+Don't forget to change the name of the package for the .srv  : "from goal.srv import my_goal, my_goalResponse"
+Don't forget, while in service, doesn't see anything
+For the services. 
+Don't forget to update the CMakeLists.txt
+
+find_package(catkin REQUIRED COMPONENTS
+  rospy
+  std_msgs
+  message_generation
+)
+
+## Generate services in the 'srv' folder
+ add_service_files(
+   FILES
+   my_goal.srv
+#   Service2.srv
+ )
+
+catkin_package(
+#  INCLUDE_DIRS include
+#  LIBRARIES ros_ass_world
+  CATKIN_DEPENDS rospy
+#  DEPENDS system_lib
+)
+
+
+
+Package.xml
+
+ <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <exec_depend>rospy</exec_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <build_export_depend>message_runtime</build_export_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+
+For the file that will call the service:
+
+rospy.wait_for_service('/move_robot_to_goal')
+try:
+           goal = rospy.ServiceProxy('/move_robot_to_goal', my_goal)
+           response = goal(x, y)
+           if response==True:
+		whatever
+	   else: 
+		whatever
+ except rospy.ServiceException, e:
+           print "Service call failed: %s"%e
+
+
+
+
+
+
+
+MSG FILE THE MAP.MSG
+
+makelist:
+find_package(catkin REQUIRED COMPONENTS
+  rospy
+  std_msgs
+  message_generation
+)
+
+
+## Generate messages in the 'msg' folder
+ add_message_files(
+   FILES
+   the_map.msg
+#   Message2.msg
+ )
+
+## Generate added messages and services with any dependencies listed here
+ generate_messages(
+   DEPENDENCIES
+   std_msgs  # Or other packages containing msgs
+ )
+
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>message_runtime</build_export_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+
+
+
+
+
