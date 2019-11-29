@@ -43,6 +43,9 @@ Package.xml
 
 For the file that will call the service:
 
+from move_to_goal import movetogoal
+from PACKAGE.srv import*
+
 rospy.wait_for_service('/move_robot_to_goal')
 try:
            goal = rospy.ServiceProxy('/move_robot_to_goal', my_goal)
