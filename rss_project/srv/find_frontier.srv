@@ -1,0 +1,4 @@
+---
+float32[] positionX
+float32[] positionY
+bool complete

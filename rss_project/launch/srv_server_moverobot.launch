@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="rss_project" type="move.py" name="move_to_goal"  output="screen">
+    </node>
+</launch>
