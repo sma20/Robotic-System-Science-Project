@@ -98,7 +98,8 @@ def wavefront(grid,startX,startY):
 	lastDistX = [startX]
 	lastDistY = [startY]
 	frontierFound = False	# If the frontier is found, True
-	mapCompleted = False	# If there is no more cells that are not calculated, True
+	global mapCompleted 	# If there is no more cells that are not calculated, True
+	global pathX,pathY
 	distance = 0	# The first distance is at 0
 	goalX, goalY = startX,startY
 	# While there is no frontier found and the map is not complete:
@@ -163,6 +164,9 @@ def wavefront(grid,startX,startY):
 	del pathY[-1]
 	for i in range(len(pathY)):
 		pathY[i] = len(grid) - pathY[i] + 1
+
+	global endService
+	endService = True
 	return(pathX,pathY)
 
 def callback(msg):
@@ -196,20 +200,27 @@ def getPose(msg):
 	poseX,poseY=convert_xy_to_px(msg.pose.pose.position.x,msg.pose.pose.position.y,8)
 	 
 def service_callback(request):
+	doneOnce = False
 	rospy.loginfo("Fontier service called")
-	sub = rospy.Subscriber('/map', OccupancyGrid, callback)
-	sub2 = rospy.Subscriber('/odom', Odometry, getPose)
+	if aaaaaaa == False:
+		sub = rospy.Subscriber('/map', OccupancyGrid, callback)
+		sub2 = rospy.Subscriber('/odom', Odometry, getPose)
+		doneOnce = True
 	response = find_frontierResponse()
-	response.complete = False
-	response.positionX = [0,0]
-	response.positionY = [0,0]
+	print "aaa", pathX, pathY, mapCompleted
+	response.complete = mapCompleted
+	response.positionX = pathX
+	response.positionY = pathY
 
 	rospy.loginfo("End of service")
 	return response
 
-
 poseX = 0
 poseY = 0
+pathX = [0]
+pathY = [0]
+mapCompleted = False
+endService = False
 rospy.init_node('work_with_map', anonymous=True)
 service = rospy.Service('/findfrontier', find_frontier , service_callback)
 
