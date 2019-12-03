@@ -202,7 +202,7 @@ def getPose(msg):
 def service_callback(request):
 	doneOnce = False
 	rospy.loginfo("Fontier service called")
-	if aaaaaaa == False:
+	if doneOnce == False:
 		sub = rospy.Subscriber('/map', OccupancyGrid, callback)
 		sub2 = rospy.Subscriber('/odom', Odometry, getPose)
 		doneOnce = True
