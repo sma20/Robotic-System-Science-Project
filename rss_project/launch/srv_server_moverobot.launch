@@ -1,8 +1,12 @@
 <launch>
-    <node pkg="rss_project" type="move.py" name="move_to_goal"  output="screen">
-    </node>
 
     <node pkg="rss_project" type="master_node.py" name="master_node"  output="screen">
     </node>
+
+    <node pkg="rss_project" type="move.py" name="move_to_goal"  output="screen">
+    </node>  <!-- reach goal service-->
+	
+    <node pkg="rss_project" type="map.py" name="work_with_map"  output="screen"> 
+    </node> <!--wavefront service, map uncomplete-->
 
 </launch>
