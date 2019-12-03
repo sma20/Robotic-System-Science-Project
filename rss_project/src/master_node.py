@@ -23,19 +23,21 @@ try:
 except rospy.ServiceException, e:
     print ("Service call move_robot_to_goal failed: %s"%e)
 
+complete=False
 
-while response.complete==False:
+while complete==False:
     response_front=find_front() #we start find_front until map complete
+    complete= response_front.complete
 
-    if response.complete== False: #if map isn't complete
-        len_trajectory=len(response.positionX) #get how many goals there is in the trajectory
+    if response_front.complete== False: #if map isn't complete
+        len_trajectory=len(response_front.positionX) #get how many goals there is in the trajectory
 
         for traj in range(len_trajectory): #for each point until the goal
-            move_request_object.x_goal=positionX[traj]
-            move_request_object.y_goal=positionY[traj]
+            move_request_object.x_goal=response_front.positionX[traj]
+            move_request_object.y_goal=response_front.positionY[traj]
 
-            response = move_to_goal(move_request_object)
-            if response.success==True and traj==(len_trajectory-1): #once the whole path is done, check point
+            response_move = move_to_goal(move_request_object)
+            if response_move.success==True and traj==(len_trajectory-1): #once the whole path is done, check point
                 print("success")
 
       
