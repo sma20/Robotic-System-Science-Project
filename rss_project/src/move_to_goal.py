@@ -77,32 +77,39 @@ class movetogoal():
         inc_x= self.goal_x -x #calculate the error
         inc_y= self.goal_y -y#
         angle_goal = atan2(inc_y,inc_x)#
-	print("inc_x")
-	print(inc_x)
+	#print("inc_x")
+	#print(inc_x)
 
     def moverobot(self):
         sub= rospy.Subscriber('/odom', Odometry, self.resetodometry)#call this fct
         while not self.ctrl_c :
-            print("x   ")
+            """
+	    print("x   ")
             print(x)
             print("y")
             print(y)
             print("theta")
             print(theta)
+	    """
 
             self.get_diff_of_position()
 
             if abs(inc_x)>0.1 or abs(inc_y)>0.1 : #if we are far from goal
 
                 if abs(angle_goal-theta) >0.1 :#if the angle difference is too big
-                    print("in big angle")
-		    self.speed.linear.x=0.0 #correct the angle
-                    self.speed.angular.z=0.3#
-                    self.publish_once_in_cmd()
+                    if (angle_goal-theta)>0.1: #check the shortest way to turn toward our goal
+                        #print("in big angle")
+                        self.speed.linear.x=0.0 #correct the angle
+                        self.speed.angular.z=0.3#
+                        self.publish_once_in_cmd()
+                    else:
+                        self.speed.linear.x=0.0 #correct the angle
+                        self.speed.angular.z= -0.3#
+                        self.publish_once_in_cmd()
 
                 else: #keep going straight
-		    print("in straight")
-                    self.speed.linear.x=0.4 #not too fast not to make the error margin of the odometry larger
+		    #print("in straight")
+                    self.speed.linear.x=0.15 #not too fast not to make the error margin of the odometry larger
                     self.speed.angular.z=0.0#
                     self.publish_once_in_cmd()
             else:
