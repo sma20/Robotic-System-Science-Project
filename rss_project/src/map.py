@@ -114,6 +114,8 @@ def wavefront(grid,startX,startY):
 			# Checks the 8 cells around each cell
 			for m in range(3):
 				for n in range(3):
+					if (m == 0 and n == 0) or (m == 0) or (m == 0 and n == 2) or (m == 2 and n == 0) or (m == 2 and n == 2):
+						continue
 					# If a frontier is previously found, continue to the next step
 					if frontierFound == True:
 						continue
@@ -127,7 +129,11 @@ def wavefront(grid,startX,startY):
 							newDistY.append(lastDistY[i]+n-1)																												#########################
 						# Else if there is an obstacle, set a really high value to the cell in the distance_map
 						elif grid[lastDistX[i]+m-1][lastDistY[i]+n-1] > 0:
-							distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = len(grid)*len(grid[0])+1
+							#distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = len(grid)*len(grid[0])+1
+							# Then we mark the cells next to it as a no-go cell, for more security.
+							for p in range(3):
+								for q in range(3):
+									distance_map[lastDistX[i]+m-1+p-1][lastDistY[i]+n-1+q-1] = len(grid)*len(grid[0])+1
 						# Else if there is no frontier, put the value of the distance to the cell in the distance_map, then ad the coordinate of the cell in newDist
 						elif grid[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0 and distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0:										#########################
 							distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = distance
@@ -158,10 +164,10 @@ def wavefront(grid,startX,startY):
 					pathY.append(pathY[-1]+n-1)
 		#print distance
 	print "-------------------------------------------------"
-	for i in range(0,70):
-		for j in range(0,70):
-			print int(distance_map[j][i]),
-		print " "
+	#for i in range(70,140):
+	#	for j in range(70,140):
+	#		print int(distance_map[j][i]),
+	#	print " "
 	pathX.reverse()
 	pathY.reverse()
 	if len(pathX) != 1: 
@@ -175,7 +181,7 @@ def wavefront(grid,startX,startY):
 	tmpY = [0]*len(pathY)
 	for i in range(len(pathX)):
 		tmpX[i], tmpY[i] = convert_px_to_xy(pathX[i],pathY[i])
-		tmpY[i] = -tmpY[i]														################## ATTENTION AU MOINS
+		tmpY[i] = -tmpY[i]														################## ATTENTION AU SIGNE MOINS
 	pathX = tmpX
 	pathY = tmpY
 	global endService
@@ -213,22 +219,23 @@ def getPose(msg):
 	poseX,poseY=convert_xy_to_px(msg.pose.pose.position.x,msg.pose.pose.position.y)
 	 
 def service_callback(request):
-	doneOnce = False
-	rospy.loginfo("Fontier service called")
-	if doneOnce == False:
-		sub = rospy.Subscriber('/map', OccupancyGrid, callback)
-		sub2 = rospy.Subscriber('/odom', Odometry, getPose)
-		doneOnce = True
-	while endService == False:
-		a = 0
-	response = find_frontierResponse()
-	print "aaa", pathX, pathY, mapCompleted
-	response.complete = mapCompleted
-	response.positionX = pathX
-	response.positionY = pathY
+	if request.start_frontier == True:
+		doneOnce = False
+		rospy.loginfo("Fontier service called")
+		if doneOnce == False:
+			sub = rospy.Subscriber('/map', OccupancyGrid, callback)
+			sub2 = rospy.Subscriber('/odom', Odometry, getPose)
+			doneOnce = True
+		while endService == False:
+			a = 0
+		response = find_frontierResponse()
+		print "aaa", pathX, pathY, mapCompleted
+		response.complete = mapCompleted
+		response.positionX = pathX
+		response.positionY = pathY
 
-	rospy.loginfo("End of service")
-	return response
+		rospy.loginfo("End of service")
+		return response
 
 poseX = 0
 poseY = 0
