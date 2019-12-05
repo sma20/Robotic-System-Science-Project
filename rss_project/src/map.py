@@ -9,7 +9,9 @@ from rss_project.srv import find_frontier,find_frontierResponse
 
 import matplotlib.pyplot as plt
 import numpy as np
-	
+
+start_frontier=False
+
 resolution = 0.05	# resolution of the image in m/px
 offsetX = -15		# offset of the reduced map
 offsetY = -15
@@ -189,28 +191,29 @@ def wavefront(grid,startX,startY):
 	return(pathX,pathY)
 
 def callback(msg):
-	print "start"
-	grid_px = msg.data
-	grid_2D = convert_1D_to_2D(grid_px)
-	coastmap = create_coastmap(grid_2D)
-	freeCells = getFreeCells(coastmap)
-	#scaled = convert_px_to_xy(freeCells)
-	print("pose x and y",poseX,poseY)
-	path = wavefront(coastmap,poseX,poseY)
-	for i in range(len(path[0])):
-		print path[0][i],path[1][i]
-		print convert_px_to_xy(path[0][i],path[1][i])
-	print "done"
+	if start_frontier ==True:
+		print "start"
+		grid_px = msg.data
+		grid_2D = convert_1D_to_2D(grid_px)
+		coastmap = create_coastmap(grid_2D)
+		freeCells = getFreeCells(coastmap)
+		#scaled = convert_px_to_xy(freeCells)
+		print("pose x and y",poseX,poseY)
+		path = wavefront(coastmap,poseX,poseY)
+		for i in range(len(path[0])):
+			print path[0][i],path[1][i]
+			print convert_px_to_xy(path[0][i],path[1][i])
+		print "done"
 
-	#print convert_xy_to_px(0.6,0.65)
+		#print convert_xy_to_px(0.6,0.65)
 
-	plt.scatter(freeCells[0],freeCells[1])
-	#plt.scatter(occupiedCells[0],occupiedCells[1],'r')
-	#plt.scatter(unknownCells[0],unknownCells[1],'b')
-	plt.grid(which='major',linestyle='-', alpha=0.5)
-	plt.minorticks_on()
-	plt.grid(which='minor', linestyle='-', alpha=0.5)
-	#plt.show()
+		plt.scatter(freeCells[0],freeCells[1])
+		#plt.scatter(occupiedCells[0],occupiedCells[1],'r')
+		#plt.scatter(unknownCells[0],unknownCells[1],'b')
+		plt.grid(which='major',linestyle='-', alpha=0.5)
+		plt.minorticks_on()
+		plt.grid(which='minor', linestyle='-', alpha=0.5)
+		#plt.show()
 
 
 def getPose(msg):
@@ -218,8 +221,10 @@ def getPose(msg):
 	global poseY
 	poseX,poseY=convert_xy_to_px(msg.pose.pose.position.x,msg.pose.pose.position.y)
 	 
-def service_callback(request):
-	if request.start_frontier == True:
+def service_callback(request): 
+    global start_frontier
+    start_frontier=request.start_frontier
+    if start_frontier==True:
 		doneOnce = False
 		rospy.loginfo("Fontier service called")
 		if doneOnce == False:
@@ -233,7 +238,7 @@ def service_callback(request):
 		response.complete = mapCompleted
 		response.positionX = pathX
 		response.positionY = pathY
-
+		start_frontier=False
 		rospy.loginfo("End of service")
 		return response
 
