@@ -1,3 +1,4 @@
+bool start_frontier
 ---
 float32[] positionX
 float32[] positionY
