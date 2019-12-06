@@ -38,9 +38,16 @@ class movetogoal():
             lenght=len(LaserScan.ranges[:])
             ranges=LaserScan.ranges[:]
             #ranges= LaserScan.ranges[80:lenght-80] #real robot
-            print ranges[:]
+            #print ranges[:]
             init=0
-            if init==0 and any(t<0.2 for t in ranges[:]) :  #real robot 0.2 #gazebo:0.5
+            for t in range(len(ranges)):
+                if (ranges[t]<0.5 and ranges[t]>0.05):
+                    init+=1
+            #check=any(ranges[:]<0.2 and ranges[:]>0.05)
+            #if any(t<0.5 and t>0.05 for t in ranges[:]) :  #real robot 0.2 #gazebo:0.5
+                #init+=1
+            print init
+            if init>10:
                 self.success=False
                 self.stoprobot()
                 init=1
