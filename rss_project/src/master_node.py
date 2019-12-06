@@ -140,15 +140,15 @@ def move_backward(posX,posY):
                     speed.angular.z= -0.3#
                     publish_once_in_cmd(speed)
             else:
-                self.speed.linear.x=0.15 #not too fast not to make the error margin of the odometry larger
-                self.speed.angular.z=0.0#
-                self.publish_once_in_cmd(speed)
+                speed.linear.x=0.15 #not too fast not to make the error margin of the odometry larger
+                speed.angular.z=0.0#
+                publish_once_in_cmd(speed)
             rospy.sleep(0.5)
             call_pose()
             print poseX,poseY
 def shutdownhook():
 # works better than the rospy.is_shutdown()
-    self.ctrl_c = True
+    ctrl_c = True
 if __name__ == '__main__':
 
     rospy.init_node('master_node') # Initialise THE ROS node
