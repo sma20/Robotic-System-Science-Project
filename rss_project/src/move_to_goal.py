@@ -1,18 +1,20 @@
 #! /usr/bin/env python
 import rospy#
 from geometry_msgs.msg import Point, Twist #to send the command
+from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry #to get his position
 from math import atan2 #takes into account wether there is a - and where it is
 from tf.transformations import euler_from_quaternion#
 from rss_project.srv import my_goal, my_goalResponse
-
+#import time
 
 #initialization, just to be able to use them wherever they are
 #
 x= 0.0# not sure they are read
 y= 0.0#
 theta=0.0#
-print("check")#
+#now=rospy.Time.now()
+#print("check")#
 
 class movetogoal():
 
@@ -25,7 +27,23 @@ class movetogoal():
         self.speed=Twist()#
         self.rate=rospy.Rate(4) #to give time to the robot to proess instructions
         self.goal= Point()#to give the arrival point
+        self.success=False
         rospy.on_shutdown(self.shutdownhook)
+        self.sub=rospy.Subscriber("/scan",LaserScan,self.callback)
+    
+    def callback(self,LaserScan):
+        if self.ctrl_c==False:
+            #ranges=LaserScan.ranges[:]
+            print("-------------------------------------------------------------------------")
+            lenght=len(LaserScan.ranges[:])
+            ranges=LaserScan.ranges[:]
+            #ranges= LaserScan.ranges[80:lenght-80] #real robot
+            print ranges[:]
+            init=0
+            if init==0 and any(t<0.2 for t in ranges[:]) :  #real robot 0.2 #gazebo:0.5
+                self.success=False
+                self.stoprobot()
+                init=1
 
     def publish_once_in_cmd(self):
         """
@@ -47,12 +65,13 @@ class movetogoal():
         self.ctrl_c = True
 
     def stoprobot(self):
-	rospy.loginfo("Goal reached")
-
+	    #rospy.loginfo("Goal reached")
+        
         self.speed.linear.x = 0.0
         self.speed.angular.z = 0.0
         self.publish_once_in_cmd()
-	self.ctrl_c=True
+        self.ctrl_c=True
+        
 
     def resetodometry(self, Odometry):
 
@@ -71,8 +90,6 @@ class movetogoal():
         global inc_x
         global inc_y
         global angle_goal
-	
-
 
         inc_x= self.goal_x -x #calculate the error
         inc_y= self.goal_y -y#
@@ -81,6 +98,10 @@ class movetogoal():
 	#print(inc_x)
 
     def moverobot(self):
+        """if abs(rospy.Time.now()-now)> 300 :#5min
+            self.ctrl_c=True
+            print("sorry it's been too long")
+        """
         sub= rospy.Subscriber('/odom', Odometry, self.resetodometry)#call this fct
         while not self.ctrl_c :
             """
@@ -91,7 +112,6 @@ class movetogoal():
             print("theta")
             print(theta)
 	    """
-
             self.get_diff_of_position()
 
             if abs(inc_x)>0.1 or abs(inc_y)>0.1 : #if we are far from goal
@@ -113,16 +133,19 @@ class movetogoal():
                     self.speed.angular.z=0.0#
                     self.publish_once_in_cmd()
             else:
+                self.success=True
                 self.stoprobot() #goal so stop
 
 
             #print("going round here")#
             self.rate.sleep() #give the robot tome to act
-
+        return self.success
 
 if __name__ == '__main__':
 
     rospy.init_node("decide_goal", anonymous=True)
+    
+    #now = rospy.Time.now().sec
     move_r = movetogoal()
 
     try:

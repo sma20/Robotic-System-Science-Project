@@ -5,13 +5,14 @@ from geometry_msgs.msg import Point, Twist #to send the command
 from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Odometry
 #from project_g.msg import the_map
+from tf.transformations import euler_from_quaternion#
 import matplotlib.pyplot as plt
 import numpy as np
 from rss_project.srv import *
 poseX=0
 poseY=0
 posew=0
-
+theta=0
 def publish_once_in_cmd(speed):
     pub= rospy.Publisher("/cmd_vel_mux/input/teleop",Twist,queue_size=4)
     """
@@ -32,11 +33,10 @@ def call_pose():
     sub = rospy.Subscriber('/odom', Odometry, getPose)
 
 def getPose(msg):
-    global poseX
-    global poseY
-    global posew
+
     poseX,poseY,posew=msg.pose.pose.position.x,msg.pose.pose.position.y,msg.pose.pose.orientation.w
-	 
+    rot_q= msg.pose.pose.orientation
+    (roll,pitch,theta) = euler_from_quaternion ([rot_q.x, rot_q.y, rot_q.z,rot_q.w])#
 def first_move():
 
     global poseX
@@ -65,7 +65,7 @@ def first_move():
         print posew
         #duration+=1
 
-    while abs(posew)<0.95 :
+    while abs(posew)<0.98 :
         #rospy.loginfo(duration)
         speed.linear.x=0.0 
         speed.angular.z=0.3
@@ -80,12 +80,9 @@ def first_move():
 	 
 def turn():
 
-    global poseX
-    global poseY
     global posew
     #make the robot turn 360 then move straight ahead 
     call_pose()
-
     while abs(posew)>0.5 :
         #rospy.loginfo(duration)
         speed.linear.x=0.0 
@@ -95,9 +92,9 @@ def turn():
         rospy.sleep(0.5)
         call_pose()
         print posew
+        #duration+=1
 
-
-    while abs(posew)<0.95 :
+    while abs(posew)<0.98 :
         #rospy.loginfo(duration)
         speed.linear.x=0.0 
         speed.angular.z=0.3
@@ -106,8 +103,35 @@ def turn():
         rospy.sleep(0.5)
         call_pose()
         print posew
+        #duration+=1
 
     rospy.sleep(1)
+
+
+
+def move_backward(posX,posY):
+
+    global poseX
+    global poseY
+    global theta
+    #make the robot turn 360 then move straight ahead 
+    call_pose()
+    angle_goal = atan2(posY-poseY,posX-poseX)#
+
+    while abs(poseX-posX) >0.09 or abs(poseY-posY) >0.09:
+        if abs(angle_goal-theta) >0.1 :#if the angle difference is too big
+            if (angle_goal-theta)>0.1: #check the shortest way to turn toward our goal
+                #print("in big angle")
+                speed.linear.x=0.0 #correct the angle
+                speed.angular.z=0.3#
+                publish_once_in_cmd()
+            else:
+                speed.linear.x=0.0 #correct the angle
+                speed.angular.z= -0.3#
+                publish_once_in_cmd()
+        rospy.sleep(0.5)
+        call_pose()
+        print poseX,poseY
 
 if __name__ == '__main__':
 
@@ -160,6 +184,11 @@ if __name__ == '__main__':
                     turn() #do a 360
                     find_request_object.start_frontier=True
                     start=True
+                if response_move.success==False:
+                    move_backward(TrajectoryX[traj-1],TrajectorY[traj-1])
+                    find_request_object.start_frontier=True
+                    start=True
+                    break
         
     print("everything done, map completed")   
     #Rest of the code when map completed missing the 360 turn now

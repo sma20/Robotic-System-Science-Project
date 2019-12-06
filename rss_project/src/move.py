@@ -11,10 +11,12 @@ def my_callback(request):
     print("my x and y coordinates")
     print(request.x_goal,request.y_goal)
     move = movetogoal(request.x_goal,request.y_goal)
-    move.moverobot()
+    success=move.moverobot()
+    response.success=success
     rospy.loginfo("Finished move_robot service")
-    response.success=True
+    print(response.success)
     return response.success
+    
 
 rospy.init_node('move_to_goal')
 my_service = rospy.Service('/move_robot_to_goal', my_goal , my_callback)
