@@ -9,10 +9,14 @@ from tf.transformations import euler_from_quaternion#
 import matplotlib.pyplot as plt
 import numpy as np
 from rss_project.srv import *
+from math import atan2
+
 poseX=0
 poseY=0
 posew=0
 theta=0
+ctrl_c=False
+
 def publish_once_in_cmd(speed):
     pub= rospy.Publisher("/cmd_vel_mux/input/teleop",Twist,queue_size=4)
     """
@@ -33,10 +37,15 @@ def call_pose():
     sub = rospy.Subscriber('/odom', Odometry, getPose)
 
 def getPose(msg):
-
+    global poseX
+    global poseY
+    global posew
+    global theta
     poseX,poseY,posew=msg.pose.pose.position.x,msg.pose.pose.position.y,msg.pose.pose.orientation.w
+    
     rot_q= msg.pose.pose.orientation
     (roll,pitch,theta) = euler_from_quaternion ([rot_q.x, rot_q.y, rot_q.z,rot_q.w])#
+
 def first_move():
 
     global poseX
@@ -114,32 +123,35 @@ def move_backward(posX,posY):
     global poseX
     global poseY
     global theta
+    global ctrl_c
     #make the robot turn 360 then move straight ahead 
     call_pose()
     angle_goal = atan2(posY-poseY,posX-poseX)#
-
-    while abs(poseX-posX) >0.09 or abs(poseY-posY) >0.09:
-        if abs(angle_goal-theta) >0.1 :#if the angle difference is too big
-            if (angle_goal-theta)>0.1: #check the shortest way to turn toward our goal
-                #print("in big angle")
-                speed.linear.x=0.0 #correct the angle
-                speed.angular.z=0.3#
-                publish_once_in_cmd()
-            else:
-                speed.linear.x=0.0 #correct the angle
-                speed.angular.z= -0.3#
-                publish_once_in_cmd()
-        rospy.sleep(0.5)
-        call_pose()
-        print poseX,poseY
-
+    if ctrl_c==False:
+        while abs(poseX-posX) >0.09 or abs(poseY-posY) >0.09:
+            if abs(angle_goal-theta) >0.1 :#if the angle difference is too big
+                if (angle_goal-theta)>0.1: #check the shortest way to turn toward our goal
+                    #print("in big angle")
+                    speed.linear.x=0.0 #correct the angle
+                    speed.angular.z=0.3#
+                    publish_once_in_cmd(speed)
+                else:
+                    speed.linear.x=0.0 #correct the angle
+                    speed.angular.z= -0.3#
+                    publish_once_in_cmd(speed)
+            rospy.sleep(0.5)
+            call_pose()
+            print poseX,poseY
+def shutdownhook():
+# works better than the rospy.is_shutdown()
+    self.ctrl_c = True
 if __name__ == '__main__':
 
     rospy.init_node('master_node') # Initialise THE ROS node
     print("matser_node started")
     speed=Twist()
     #rate=rospy.rate(5)
-    ctrl_c = False #to exit
+    rospy.on_shutdown(shutdownhook)
 
     try:
         rospy.wait_for_service('/findfrontier')# Wait for the service to be running (with launch file)
@@ -185,7 +197,7 @@ if __name__ == '__main__':
                     find_request_object.start_frontier=True
                     start=True
                 if response_move.success==False:
-                    move_backward(TrajectoryX[traj-1],TrajectorY[traj-1])
+                    move_backward(TrajectoryX[traj-1],TrajectoryY[traj-1])
                     find_request_object.start_frontier=True
                     start=True
                     break
