@@ -139,6 +139,10 @@ def move_backward(posX,posY):
                     speed.linear.x=0.0 #correct the angle
                     speed.angular.z= -0.3#
                     publish_once_in_cmd(speed)
+            else:
+                self.speed.linear.x=0.15 #not too fast not to make the error margin of the odometry larger
+                self.speed.angular.z=0.0#
+                self.publish_once_in_cmd(speed)
             rospy.sleep(0.5)
             call_pose()
             print poseX,poseY
