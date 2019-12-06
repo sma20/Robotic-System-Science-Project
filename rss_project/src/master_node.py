@@ -149,6 +149,8 @@ def move_backward(posX,posY):
 def shutdownhook():
 # works better than the rospy.is_shutdown()
     ctrl_c = True
+
+    
 if __name__ == '__main__':
 
     rospy.init_node('master_node') # Initialise THE ROS node
@@ -173,7 +175,7 @@ if __name__ == '__main__':
         print ("Service call move_robot_to_goal failed: %s"%e)
 
     first_move()
-
+    previousX,previousY=0,0
     complete=False
     find_request_object.start_frontier=True
     start=True
@@ -197,11 +199,15 @@ if __name__ == '__main__':
                 response_move = move_to_goal(move_request_object)
                 if response_move.success==True and traj==(len_trajectory-1): #once the whole path is done, check point
                     print("success move")
+                    previousX,previousY = TrajectoryX[traj],TrajectoryY[traj]
                     turn() #do a 360
                     find_request_object.start_frontier=True
                     start=True
                 if response_move.success==False:
-                    move_backward(TrajectoryX[traj-1],TrajectoryY[traj-1])
+                    if traj-1>=0:
+                        move_backward(TrajectoryX[traj-1],TrajectoryY[traj-1])
+                    else:
+                        move_backward(previousX, previousY)
                     find_request_object.start_frontier=True
                     start=True
                     break
