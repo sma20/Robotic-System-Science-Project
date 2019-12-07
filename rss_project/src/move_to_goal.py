@@ -13,6 +13,7 @@ from rss_project.srv import my_goal, my_goalResponse
 x= 0.0# not sure they are read
 y= 0.0#
 theta=0.0#
+already_visited=0
 #now=rospy.Time.now()
 #print("check")#
 
@@ -32,25 +33,46 @@ class movetogoal():
         self.sub=rospy.Subscriber("/scan",LaserScan,self.callback)
     
     def callback(self,LaserScan):
+        global already_visited
         if self.ctrl_c==False:
             #ranges=LaserScan.ranges[:]
-            print("-------------------------------------------------------------------------")
+            #print("-------------------------------------------------------------------------")
             lenght=len(LaserScan.ranges[:])
-            ranges=LaserScan.ranges[:]
-            #ranges= LaserScan.ranges[80:lenght-80] #real robot
+            #ranges=LaserScan.ranges[:]
+            ranges= LaserScan.ranges[80:lenght-80] #real robot
             #print ranges[:]
-            init=0
-            for t in range(len(ranges)):
-                if (ranges[t]<0.5 and ranges[t]>0.05):
-                    init+=1
             #check=any(ranges[:]<0.2 and ranges[:]>0.05)
             #if any(t<0.5 and t>0.05 for t in ranges[:]) :  #real robot 0.2 #gazebo:0.5
-                #init+=1
-            print init
-            if init>10:
+            #init+=1
+            init=0
+            
+            for t in range(len(ranges)):
+                if (ranges[t]<0.2 and ranges[t]>0.05):
+                    init+=1
+            #print init
+            if init>55 and already_visited<3:
+                
+                if (self.goal_x>0):
+                    self.goal_x= self.goal_x+0.11 #new goal
+                else: 
+                    self.goal_x= self.goal_x-0.11 #new goal
+
+                if (self.goal_y>0):
+                    self.goal_y=self.goal_y+0.11
+                else:
+                    self.goal_y= self.goal_y-0.11 #new goal
+                self.go_back_a_bit()
+                already_visited+=1
+
+            elif already_visited==3:
                 self.success=False
                 self.stoprobot()
-                init=1
+           
+    def go_back_a_bit(self):
+        self.speed.linear.x=-0.1 #will move about 10cm before new command is sent in 
+        self.speed.angular.z=0.0
+        self.publish_once_in_cmd()
+
 
     def publish_once_in_cmd(self):
         """
