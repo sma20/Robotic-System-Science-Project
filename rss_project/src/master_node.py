@@ -18,12 +18,12 @@ theta=0
 ctrl_c=False
 
 def publish_once_in_cmd(speed):
-    pub= rospy.Publisher("/cmd_vel_mux/input/teleop",Twist,queue_size=4)
     """
     This is because publishing in topics sometimes fails the first time you publish.
     In continuous publishing systems, this is no big deal, but in systems that publish only
     once, it IS very important.
     """
+    pub= rospy.Publisher("/cmd_vel_mux/input/teleop",Twist,queue_size=4)
     while not ctrl_c:
         connections = pub.get_num_connections()
         if connections > 0:
@@ -34,9 +34,11 @@ def publish_once_in_cmd(speed):
         else:
             rospy.sleep(5)
 def call_pose():
+    """to call the odometry"""
     sub = rospy.Subscriber('/odom', Odometry, getPose)
 
 def getPose(msg):
+    """to get all the pose we need as global, could be done with a return, nut well"""
     global poseX
     global poseY
     global posew
@@ -47,7 +49,7 @@ def getPose(msg):
     (roll,pitch,theta) = euler_from_quaternion ([rot_q.x, rot_q.y, rot_q.z,rot_q.w])#
 
 def first_move():
-
+    """we go forward 30cm than do a 360"""
     global poseX
     global poseY
     global posew
@@ -71,7 +73,7 @@ def first_move():
         publish_once_in_cmd(speed)
         rospy.sleep(0.5)
         call_pose()
-        print posew
+        #print posew
         #duration+=1
 
     while abs(posew)<0.98 :
@@ -82,13 +84,14 @@ def first_move():
         publish_once_in_cmd(speed)
         rospy.sleep(0.5)
         call_pose()
-        print posew
+        #print posew
         #duration+=1
     rospy.sleep(1)
 
 	 
 def turn():
-
+    """we do a 360
+    """
     global posew
     #make the robot turn 360 then move straight ahead 
     call_pose()
@@ -111,15 +114,18 @@ def turn():
         publish_once_in_cmd(speed)
         rospy.sleep(0.5)
         call_pose()
-        print posew
+        #print posew
         #duration+=1
 
     rospy.sleep(1)
 
 
-
+#Risk of infinite loop with the findfrontier sending the same trajectory again
 def move_backward(posX,posY):
-
+    """
+    if a wall is too close from it it goes to its previous pose
+    Actually we reach the coordinate frontally and not backward (so no need for a 360)
+    """
     global poseX
     global poseY
     global theta
@@ -146,8 +152,30 @@ def move_backward(posX,posY):
             rospy.sleep(0.5)
             call_pose()
             print poseX,poseY
+    find_request_object.start_frontier=True #Now that the previous pos is reached we can restart the frontier service
+    start=True #double security 
+
+def deviate(posX,posY):
+    """
+    if a wall is too close from it it deviates
+
+    """
+    global poseX
+    global poseY
+    global theta
+    global ctrl_c
+    #make the robot turn 360 then move straight ahead 
+    call_pose()
+    angle_goal = atan2(posY-poseY,posX-poseX)#
+
+
+    find_request_object.start_frontier=True #Now that the previous pos is reached we can restart the frontier service
+    start=True #double security 
+
+
+
 def shutdownhook():
-# works better than the rospy.is_shutdown()
+# works better than the rospy.is_shutdown(), to force ctrl_c to respond
     ctrl_c = True
 
     
@@ -159,6 +187,7 @@ if __name__ == '__main__':
     #rate=rospy.rate(5)
     rospy.on_shutdown(shutdownhook)
 
+    #Start both services move_robot and findfrontier
     try:
         rospy.wait_for_service('/findfrontier')# Wait for the service to be running (with launch file)
         find_front = rospy.ServiceProxy('/findfrontier', find_frontier) # Create connection to service
@@ -174,21 +203,29 @@ if __name__ == '__main__':
     except rospy.ServiceException, e:
         print ("Service call move_robot_to_goal failed: %s"%e)
 
+    #we go forward 30cm than do a 360
     first_move()
-    previousX,previousY=0,0
-    complete=False
-    find_request_object.start_frontier=True
-    start=True
-    while complete==False:
+    previousX,previousY=0.3,0 #we set the starting point 
 
-        if start==True:
+
+    """
+    we set the variables to control the services 
+    """
+    complete=False
+    find_request_object.start_frontier=True #2 services to start the findfrontier service when WE desire
+    start=True
+
+    while complete==False: #while the map isn't complete
+
+        if start==True: #If we allows the find frontier to do it's work
             response_front=find_front(find_request_object) #we start find_front until map complete4
-            complete= response_front.complete
-            find_request_object.start_frontier=False
+            complete= response_front.complete #we actualize the statut of the map
+            find_request_object.start_frontier=False #We set the variables to avoid find_frontier to start whenever it wants
             start=False
 
         if response_front.complete== False: #if map isn't complete
-            TrajectoryX=response_front.positionX
+
+            TrajectoryX=response_front.positionX #we collect the positions to reach
             TrajectoryY=response_front.positionY
             len_trajectory=len(TrajectoryX) #get how many goals there is in the trajectory
 
@@ -199,19 +236,18 @@ if __name__ == '__main__':
                 response_move = move_to_goal(move_request_object)
                 if response_move.success==True and traj==(len_trajectory-1): #once the whole path is done, check point
                     print("success move")
-                    previousX,previousY = TrajectoryX[traj],TrajectoryY[traj]
+                    previousX,previousY = TrajectoryX[traj],TrajectoryY[traj] #we save the position reached
                     turn() #do a 360
-                    find_request_object.start_frontier=True
+                    find_request_object.start_frontier=True #we can now redo a findfrontier
                     start=True
-                if response_move.success==False:
-                    if traj-1>=0:
+
+                if response_move.success==False: #if there is been a wall in front of the robot 
+                    if traj-1>=0: 
                         move_backward(TrajectoryX[traj-1],TrajectoryY[traj-1])
-                    else:
+                    else: #if it happenned at the first move of the trajectory
                         move_backward(previousX, previousY)
-                    find_request_object.start_frontier=True
-                    start=True
                     break
         
     print("everything done, map completed")   
-    #Rest of the code when map completed missing the 360 turn now
+    #Rest of the code when map completed 
  
