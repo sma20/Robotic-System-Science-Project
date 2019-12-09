@@ -47,7 +47,7 @@ class movetogoal():
             init=0
             
             for t in range(len(ranges)):
-                if (ranges[t]<0.2 and ranges[t]>0.05):
+                if (ranges[t]<0.1 and ranges[t]>0.05):
                     init+=1
             #print init
             if init>55 and already_visited<3:
@@ -64,12 +64,13 @@ class movetogoal():
                 self.go_back_a_bit()
                 already_visited+=1
 
-            elif already_visited==3:
+            elif init>55 and already_visited>=3:
+                self.go_back_a_bit()
                 self.success=False
                 self.stoprobot()
            
     def go_back_a_bit(self):
-        self.speed.linear.x=-0.1 #will move about 10cm before new command is sent in 
+        self.speed.linear.x=-0.25 #will move about 15cm before new command is sent in 
         self.speed.angular.z=0.0
         self.publish_once_in_cmd()
 

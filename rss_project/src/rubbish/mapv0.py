@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+
+
 import rospy
 from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Odometry
@@ -8,8 +10,6 @@ from rss_project.srv import find_frontier,find_frontierResponse
 import matplotlib.pyplot as plt
 import numpy as np
 
-start_frontier=False
-
 resolution = 0.05	# resolution of the image in m/px
 offsetX = -15		# offset of the reduced map
 offsetY = -15
@@ -17,7 +17,6 @@ fullSizeX = 4000	# Size in pixel of the map 4000px <-> 200m
 fullSizeY = 4000
 reducedSizeX = 600	# size of the map once reduced in px 600px <-> 30m
 reducedSizeY = 600
-cell_size = 2
 
 # Convert the data from from the /map topic to a 2 dimensionnal array -> return only the reduced map
 def convert_1D_to_2D(data1D):
@@ -63,19 +62,20 @@ def getUnknownedCells(grid):
 
 # Convert the unit of a map from pixel to m
 # cell_size represents the number of pixel that form a cell (ex: if a cell is composed of 8x8 pixels, cell_size = 8) 
-def convert_px_to_xy(x_px,y_px):
+def convert_px_to_xy(x_px,y_px,cell_size):
 	x = x_px * resolution*cell_size + offsetX
 	y = reducedSizeY*resolution - y_px * resolution*cell_size + offsetY
 	return x,y
 
-def convert_xy_to_px(x,y):
+def convert_xy_to_px(x,y,cell_size):
 	x_px = int((x-offsetX)/(resolution*cell_size))
 	y_px = int((y-offsetY)/(resolution*cell_size))
 	return(x_px,y_px)
 
 # Create a coast map from the complete map
 # It regroups pixels to form a bigger cell, and then 
-def create_coastmap(grid):  
+def create_coastmap(grid):
+	cell_size = 8	# cell_size represents the number of pixel that form a cell (ex: if a cell is composed of 8x8 pixels, cell_size = 8)  
 	coastmap = np.zeros((len(grid)/cell_size,len(grid[0])/cell_size))
 	cursorX,cursorY = -1,-1
 	for i in range(len(grid)):
@@ -102,20 +102,16 @@ def wavefront(grid,startX,startY):
 	global pathX,pathY
 	distance = 0	# The first distance is at 0
 	goalX, goalY = startX,startY
-
 	# While there is no frontier found and the map is not complete:
 	while frontierFound == False and mapCompleted == False:
 		distance += 1
 		# Temporary variables. Same use as lastDist
 		newDistX, newDistY = [],[]
-
 		# For each cells with the highest distance:
 		for i in range(len(lastDistX)):
 			# Checks the 8 cells around each cell
 			for m in range(3):
 				for n in range(3):
-					if (m == 0 and n == 0) or (m == 0) or (m == 0 and n == 2) or (m == 2 and n == 0) or (m == 2 and n == 2):
-						continue
 					# If a frontier is previously found, continue to the next step
 					if frontierFound == True:
 						continue
@@ -125,23 +121,16 @@ def wavefront(grid,startX,startY):
 							frontierFound = True
 							goalX = lastDistX[i]+m-1
 							goalY = lastDistY[i]+n-1
-							newDistX.append(lastDistX[i]+m-1)																												#########################
-							newDistY.append(lastDistY[i]+n-1)																												#########################
 						# Else if there is an obstacle, set a really high value to the cell in the distance_map
 						elif grid[lastDistX[i]+m-1][lastDistY[i]+n-1] > 0:
-							#distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = len(grid)*len(grid[0])+1
-							# Then we mark the cells next to it as a no-go cell, for more security.
-							for p in range(5):
-								for q in range(5):
-									distance_map[lastDistX[i]+m-1+p-2][lastDistY[i]+n-1+q-2] = len(grid)*len(grid[0])+1
-							
+							distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = len(grid)*len(grid[0])+1
 						# Else if there is no frontier, put the value of the distance to the cell in the distance_map, then ad the coordinate of the cell in newDist
-						elif grid[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0 and distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0:										#########################
+						elif distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0:
 							distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = distance
 							newDistX.append(lastDistX[i]+m-1)
 							newDistY.append(lastDistY[i]+n-1)
 		# If there is no new cell, then the map is complete
-		if len(newDistX) == 0:																																				### /!\ ### Ca ou goalX=StartX ...
+		if len(newDistX) == 0:
 			mapCompleted = True
 			print("Map Completed")
 		# Else, we save the newDist in lastDist
@@ -159,88 +148,73 @@ def wavefront(grid,startX,startY):
 			for n in range(3):
 				if nextStepFound == True:
 					continue
-				elif distance_map[pathX[-1]+m-1][pathY[-1]+n-1] == distance:					## /!\
+				elif distance_map[pathX[-1]+m-1][pathY[-1]+n-1] == distance: 
 					nextStepFound = True
 					pathX.append(pathX[-1]+m-1)
 					pathY.append(pathY[-1]+n-1)
 		#print distance
-	"""print "-------------------------------------------------"
-	for i in range(70,140):
-		for j in range(70,140):
-			print int(distance_map[j][i]),
-		print " "
-	"""
+	print "-------------------------------------------------"
+	#for i in range(0,70):
+	#	for j in range(0,70):
+	#		print int(distance_map[j][i]),
+	#	print " "
 	pathX.reverse()
 	pathY.reverse()
-	if len(pathX) != 1: 
+	if len(pathX)>1:
 		del pathX[-1]
 		del pathY[-1]
-#	for i in range(len(pathY)):
-#		#pathY[i] = len(grid) - pathY[i] + 1
-#		pathY[i] = len(grid) - pathY[i] + 1
+	for i in range(len(pathY)):
+		pathY[i] = len(grid) - pathY[i] + 1
 
-	tmpX = [0]*len(pathX)
-	tmpY = [0]*len(pathY)
-	for i in range(len(pathX)):
-		tmpX[i], tmpY[i] = convert_px_to_xy(pathX[i],pathY[i])
-		tmpY[i] = -tmpY[i]														################## ATTENTION AU SIGNE MOINS
-	pathX = tmpX
-	pathY = tmpY
 	global endService
 	endService = True
 	return(pathX,pathY)
 
 def callback(msg):
-	if start_frontier ==True:
-		print "start"
-		grid_px = msg.data
-		grid_2D = convert_1D_to_2D(grid_px)
-		coastmap = create_coastmap(grid_2D)
-		freeCells = getFreeCells(coastmap)
-		#scaled = convert_px_to_xy(freeCells)
-		print("pose x and y",poseX,poseY)
-		path = wavefront(coastmap,poseX,poseY)
-		for i in range(len(path[0])):
-			print path[0][i],path[1][i]
-			print convert_px_to_xy(path[0][i],path[1][i])
-		print "done"
+	print "start"
+	grid_px = msg.data
+	grid_2D = convert_1D_to_2D(grid_px)
+	coastmap = create_coastmap(grid_2D)
+	freeCells = getFreeCells(coastmap)
+	#scaled = convert_px_to_xy(freeCells,8)
 
-		#print convert_xy_to_px(0.6,0.65)
+	path = wavefront(coastmap,poseX,poseY)
+	for i in range(len(path[0])):
+		print path[0][i],path[1][i]
+		print convert_px_to_xy(path[0][i],path[1][i],8)
+	print "done"
 
-		plt.scatter(freeCells[0],freeCells[1])
-		#plt.scatter(occupiedCells[0],occupiedCells[1],'r')
-		#plt.scatter(unknownCells[0],unknownCells[1],'b')
-		plt.grid(which='major',linestyle='-', alpha=0.5)
-		plt.minorticks_on()
-		plt.grid(which='minor', linestyle='-', alpha=0.5)
-		#plt.show()
+	print convert_xy_to_px(0.6,0.65,8)
+
+	plt.scatter(freeCells[0],freeCells[1])
+	#plt.scatter(occupiedCells[0],occupiedCells[1],'r')
+	#plt.scatter(unknownCells[0],unknownCells[1],'b')
+	plt.grid(which='major',linestyle='-', alpha=0.5)
+	plt.minorticks_on()
+	plt.grid(which='minor', linestyle='-', alpha=0.5)
+	#plt.show()
 
 
 def getPose(msg):
 	global poseX
 	global poseY
-	poseX,poseY=convert_xy_to_px(msg.pose.pose.position.x,msg.pose.pose.position.y)
+	poseX,poseY=convert_xy_to_px(msg.pose.pose.position.x,msg.pose.pose.position.y,8)
 	 
-def service_callback(request): 
-    global start_frontier
-    start_frontier=request.start_frontier
-    if start_frontier==True:
-		doneOnce = False
-		rospy.loginfo("Fontier service called")
-		if doneOnce == False:
-			sub = rospy.Subscriber('/map', OccupancyGrid, callback)
-			sub2 = rospy.Subscriber('/odom', Odometry, getPose)
-			doneOnce = True
-		while endService == False:
-			a = 0
-		response = find_frontierResponse()
-		print "aaa", pathX, pathY, mapCompleted
-		response.complete = mapCompleted
-		response.positionX = pathX
-		response.positionY = pathY
-		start_frontier=False
-		rospy.loginfo("End of service")
-		return response
+def service_callback(request):
+	doneOnce = False
+	rospy.loginfo("Fontier service called")
+	if doneOnce == False:
+		sub = rospy.Subscriber('/map', OccupancyGrid, callback)
+		sub2 = rospy.Subscriber('/odom', Odometry, getPose)
+		doneOnce = True
+	response = find_frontierResponse()
+	print "aaa", pathX, pathY, mapCompleted
+	response.complete = mapCompleted
+	response.positionX = pathX
+	response.positionY = pathY
+
+	rospy.loginfo("End of service")
+	return response
 
 poseX = 0
 poseY = 0

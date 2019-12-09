@@ -205,12 +205,13 @@ if __name__ == '__main__':
 
     #we go forward 30cm than do a 360
     first_move()
-    previousX,previousY=0.3,0 #we set the starting point 
+    previousX,previousY=0.3,0.1 #we set the starting point 
 
 
     """
     we set the variables to control the services 
     """
+    
     complete=False
     find_request_object.start_frontier=True #2 services to start the findfrontier service when WE desire
     start=True
@@ -232,22 +233,68 @@ if __name__ == '__main__':
             for traj in range(len_trajectory): #for each point until the goal
                 move_request_object.x_goal=TrajectoryX[traj]
                 move_request_object.y_goal=TrajectoryY[traj]
-
+                
                 response_move = move_to_goal(move_request_object)
+                
                 if response_move.success==True and traj==(len_trajectory-1): #once the whole path is done, check point
                     print("success move")
                     previousX,previousY = TrajectoryX[traj],TrajectoryY[traj] #we save the position reached
+                    print("previous pose")
+                    print(previousX,previousY)
                     turn() #do a 360
                     find_request_object.start_frontier=True #we can now redo a findfrontier
                     start=True
 
                 if response_move.success==False: #if there is been a wall in front of the robot 
-                    if traj-1>=0: 
-                        move_backward(TrajectoryX[traj-1],TrajectoryY[traj-1])
-                    else: #if it happenned at the first move of the trajectory
-                        move_backward(previousX, previousY)
+                    if traj-1>=0:
+
+                        previousX,previousY=TrajectoryX[traj-1],TrajectoryY[traj-1]
+                        print("previous pose")
+                        print(previousX,previousY)
+                        move_backward(previousX,previousY)
+                    else:
+                        move_backward(previousX,previousY)
+                    """
+                    try:
+                        rospy.wait_for_service('/move_robot_forcefield')# Wait for the service to be running (with launch file)
+                        move_forcefield = rospy.ServiceProxy('/move_robot_forcefield', my_goal) # Create connection to service
+                    except rospy.ServiceException, e:
+                        print ("Service call forcefieldfailed: %s"%e)
+                    
+                    move_request_object.x_goal=TrajectoryX[len_trajectory-1]
+                    move_request_object.y_goal=TrajectoryY[len_trajectory-1]
+                    response_move = move_forcefield(move_request_object)
+                    print("forcefield response:")
+                    print(response_move)
+                    """
+
                     break
         
     print("everything done, map completed")   
     #Rest of the code when map completed 
- 
+    
+    try:
+        rospy.wait_for_service('/check_map')# Wait for the service to be running (with launch file)
+        find_goals = rospy.ServiceProxy('/check_map',find_goals) # Create connection to service
+        find_goals_request_object= find_goalsRequest()
+        rospy.loginfo("check map Service Ready")
+        start=True
+    except rospy.ServiceException, e:
+        print ("Service call check map failed: %s"%e)
+
+    find_goals_request_object.start_check=start
+    response_goals= find_goals(find_goals_request_object)
+    TrajX=response_goals.positionsX
+    TrajY=response_goals.positionsY
+    len_trajectory=len(TrajX)
+    if len_trajectory>0:
+
+        for traj in range(len_trajectory): #for each point until the goal
+            move_request_object.x_goal=TrajX[traj]
+            move_request_object.y_goal=TrajY[traj]
+
+            response_move = move_to_goal(move_request_object)
+            if traj%20 ==0:
+                turn()
+            if response_move.success==True and traj==(len_trajectory-1): #once the whole path is done, check point
+                print("success move")

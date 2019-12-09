@@ -61,6 +61,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    find_frontier.srv
    my_goal.srv
+   find_goals.srv
  )
 
 ## Generate actions in the 'action' folder

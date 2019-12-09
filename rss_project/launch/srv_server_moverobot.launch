@@ -9,4 +9,11 @@
     <node pkg="rss_project" type="map.py" name="work_with_map"  output="screen"> 
     </node> <!--wavefront service, map uncomplete-->
 
+    <!--<node pkg="rss_project" type="service_forcefield.py" name="move_to_goal_forcefield"  output="screen">
+    </node> --> <!-- reach goal service with forcefield-->
+	
+
+    <node pkg="rss_project" type="check_final_map.py" name="check_map"  output="screen">
+    </node>  <!-- find a bunch og goals and the trajectory to go there service-->
+
 </launch>
