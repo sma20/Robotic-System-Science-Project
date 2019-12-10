@@ -5,7 +5,6 @@ from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Odometry #to get his position
 import matplotlib.pyplot as plt
 import numpy as np
-#from rss_project.srv import *
 from rss_project.srv import find_goals, find_goalsResponse
 import time
 
@@ -226,14 +225,14 @@ def map_division(grid,startX,startY):
 				#if grid[x+2][y-1]==0 and grid[x+2][y]==0 and grid[x+2][y+1]==0 and grid[x+2][y+2]==0 and grid[x+1][y+2]==0 and grid[x][y+2] ==0 and grid[x-1][y+2]==0:
 					map_division[x-left][y-down]=0 #just to visualize it 
 					if (len(goals_to_reach)== 0): #if there is already something in goals_to_reach, else prob 
-						goals_to_reach.append([x+1, y+1])
+						goals_to_reach.append([x, y])
 					else:
 						goal_too_close=False
 						for i in range(len(goals_to_reach)):
-							if ((abs((y+1)-goals_to_reach[i][1]) <4) and abs((x+1)-goals_to_reach[i][0]) <4): #if we already have a goal around this pose
+							if ((abs((y)-goals_to_reach[i][1]) <4) and abs((x)-goals_to_reach[i][0]) <4): #if we already have a goal around this pose
 								goal_too_close=True
 						if (goal_too_close==False):
-							goals_to_reach.append([x+1, y+1])
+							goals_to_reach.append([x, y])
 							map_division[x-left][y-down]=5
 					#else:
     				#	 goals_to_reach.append([y+1, x+1])
