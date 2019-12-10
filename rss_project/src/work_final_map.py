@@ -2,10 +2,10 @@
 
 import rospy
 from nav_msgs.msg import OccupancyGrid
-from ros_ass_world.msg import the_map
 from nav_msgs.msg import Odometry #to get his position
 import matplotlib.pyplot as plt
 import numpy as np
+#from rss_project.srv import *
 from rss_project.srv import find_goals, find_goalsResponse
 import time
 

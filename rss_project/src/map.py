@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+
+
 import rospy
 from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Odometry
@@ -131,10 +133,9 @@ def wavefront(grid,startX,startY):
 						elif grid[lastDistX[i]+m-1][lastDistY[i]+n-1] > 0:
 							#distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = len(grid)*len(grid[0])+1
 							# Then we mark the cells next to it as a no-go cell, for more security.
-							for p in range(5):
-								for q in range(5):
-									distance_map[lastDistX[i]+m-1+p-2][lastDistY[i]+n-1+q-2] = len(grid)*len(grid[0])+1
-							
+							for p in range(7):
+								for q in range(7):
+									distance_map[lastDistX[i]+m-1+p-3][lastDistY[i]+n-1+q-3] = len(grid)*len(grid[0])+1
 						# Else if there is no frontier, put the value of the distance to the cell in the distance_map, then ad the coordinate of the cell in newDist
 						elif grid[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0 and distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0:										#########################
 							distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = distance
@@ -164,16 +165,25 @@ def wavefront(grid,startX,startY):
 					pathX.append(pathX[-1]+m-1)
 					pathY.append(pathY[-1]+n-1)
 		#print distance
-	"""print "-------------------------------------------------"
-	for i in range(70,140):
-		for j in range(70,140):
-			print int(distance_map[j][i]),
-		print " "
-	"""
+	print "-------------------------------------------------"
+	#for i in range(70,140):
+	#	for j in range(70,140):
+	#		print int(distance_map[j][i]),
+	#	print " "
 	pathX.reverse()
 	pathY.reverse()
 	if len(pathX) != 1: 
 		del pathX[-1]
+		del pathY[-1]
+	if len(pathX) > 3:
+		del pathX[-1]
+		del pathX[-1]
+		del pathX[-1]
+		del pathX[-1]
+		
+		del pathY[-1]
+		del pathY[-1]
+		del pathY[-1]
 		del pathY[-1]
 #	for i in range(len(pathY)):
 #		#pathY[i] = len(grid) - pathY[i] + 1

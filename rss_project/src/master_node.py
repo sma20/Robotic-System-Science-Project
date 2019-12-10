@@ -245,7 +245,8 @@ if __name__ == '__main__':
                     find_request_object.start_frontier=True #we can now redo a findfrontier
                     start=True
 
-                if response_move.success==False: #if there is been a wall in front of the robot 
+                elif response_move.success==False: #if there is been a wall in front of the robot 
+                    """
                     if traj-1>=0:
 
                         previousX,previousY=TrajectoryX[traj-1],TrajectoryY[traj-1]
@@ -254,6 +255,7 @@ if __name__ == '__main__':
                         move_backward(previousX,previousY)
                     else:
                         move_backward(previousX,previousY)
+                    """    
                     """
                     try:
                         rospy.wait_for_service('/move_robot_forcefield')# Wait for the service to be running (with launch file)
@@ -267,7 +269,9 @@ if __name__ == '__main__':
                     print("forcefield response:")
                     print(response_move)
                     """
-
+                    turn()
+                    find_request_object.start_frontier=True #we can now redo a findfrontier
+                    start=True
                     break
         
     print("everything done, map completed")   
@@ -284,6 +288,9 @@ if __name__ == '__main__':
 
     find_goals_request_object.start_check=start
     response_goals= find_goals(find_goals_request_object)
+    start=False
+    find_goals_request_object.start_check=start
+
     TrajX=response_goals.positionsX
     TrajY=response_goals.positionsY
     len_trajectory=len(TrajX)
@@ -298,3 +305,5 @@ if __name__ == '__main__':
                 turn()
             if response_move.success==True and traj==(len_trajectory-1): #once the whole path is done, check point
                 print("success move")
+            elif response_move.success==False: #once the whole path is done, check point
+                continue
