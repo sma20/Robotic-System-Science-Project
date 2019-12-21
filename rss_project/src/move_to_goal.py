@@ -50,7 +50,7 @@ class movetogoal():
                 if (ranges[t]<0.1 and ranges[t]>0.05):
                     init+=1
             #print init
-            if init>55 and already_visited<5:
+            if init>55 and already_visited<15:
                 
                 if (self.goal_x>0):
                     self.goal_x= self.goal_x+0.2 #new goal
@@ -66,7 +66,7 @@ class movetogoal():
                 print("visited the scan houlalala, excuse my french")
                 print(already_visited)
 
-            elif init>55 and already_visited>=5:
+            elif init>55 and already_visited>=15:
                 print("IM THERRREEE GGUUUYYYYSS!!")
                 print(already_visited)
                 already_visited=0
@@ -81,8 +81,7 @@ class movetogoal():
         self.speed.linear.x=-0.2 #will move about 15cm before new command is sent in 
         self.speed.angular.z=0.0
         self.publish_once_in_cmd()
-        for i in range(4):
-            continue
+        
 
     def publish_once_in_cmd(self):
         """

@@ -5,6 +5,7 @@ from nav_msgs.msg import OccupancyGrid
 from nav_msgs.msg import Odometry #to get his position
 import matplotlib.pyplot as plt
 import numpy as np
+#from rss_project.srv import *
 from rss_project.srv import find_goals, find_goalsResponse
 import time
 
@@ -16,7 +17,7 @@ fullSizeY = 4000
 reducedSizeX = 600	# size of the map once reduced in px 600px <-> 30m
 reducedSizeY = 600
 
-cell_size = 4
+cell_size = 2
 """
 resolution = 0.05	# resolution of the image in m/px
 offsetX = -13.8#-15		# offset of the reduced map
@@ -180,37 +181,37 @@ def map_division(grid,startX,startY):
 	down=0
 
 	while grid[startX-searchx][startY]>=0:
-		left=startX-searchx-5 #we take one more position (unknown position), in case the map isn't perfect and starting posotion would lead to a loss of info
+		left=startX-searchx-10 #we take one more position (unknown position), in case the map isn't perfect and starting posotion would lead to a loss of info
 		searchx+=1
 		
 		if grid[startX-searchx][startY]<0: #To avoid stoping the process because of a thick obstacle
-			if grid[startX-searchx-2][startY]>=0:
-				searchx+=2	
+			if grid[startX-searchx-4][startY]>=0:
+				searchx+=4
     		
 	searchx=0
 	while grid[startX+searchx][startY]>=0:
-		right=startX+searchx+5 #-1 because of the wall present before the unknown area
+		right=startX+searchx+10 #-1 because of the wall present before the unknown area
 		searchx+=1
 
 		if grid[startX+searchx][startY]<0: #To avoid stoping the process because of a thick obstacle, Simulation prob, not in real time, because the boxes have "holes"
-			if grid[startX+searchx+2][startY]>=0:
-				searchx+=2
+			if grid[startX+searchx+4][startY]>=0:
+				searchx+=4
 	
 	while grid[startX][startY-searchy]>=0:
-		down=startY-searchy-5 #+1 because of the wall present before the unknown area
+		down=startY-searchy-10 #+1 because of the wall present before the unknown area
 		searchy+=1
 		
 		if grid[startX][startY-searchy]<0: #To avoid stoping the process because of a thick obstacle
-			if grid[startX][startY-searchy-2]>=0:
-				searchx+=2
+			if grid[startX][startY-searchy-4]>=0:
+				searchx+=4
 		
 	searchy=0
 	while grid[startX][startY+searchy]>=0:
-		up=startY+searchy+5 #-1 because of the wall present before the unknown area
+		up=startY+searchy+10 #-1 because of the wall present before the unknown area
 		searchy+=1
 		if grid[startX][startY+searchy]<0: #To avoid stoping the process because of a thick obstacle (inside unknowns)
-			if grid[startX][startY+searchy+2]>=0:
-				searchx+=2
+			if grid[startX][startY+searchy+4]>=0:
+				searchx+=4
 
 
 	xlen=(right-left)
@@ -221,18 +222,18 @@ def map_division(grid,startX,startY):
 	for x in range(left, right):
 		for y in range(down,up):  			
 			
-			if grid[x][y]==0 and grid[x-1][y]==0 and grid[x][y-1]==0 and grid[x-1][y-1]==0 :#and  grid[x+1][y+1]==0 and grid[x+1][y]==0 and grid[x+1][y-1]==0 and grid[x][y+1]==0 and grid[x-1][y+1]==0: #the extremities shouldn't be a problem
-				#if grid[x+2][y-1]==0 and grid[x+2][y]==0 and grid[x+2][y+1]==0 and grid[x+2][y+2]==0 and grid[x+1][y+2]==0 and grid[x][y+2] ==0 and grid[x-1][y+2]==0:
+			if grid[x][y]==0 and grid[x-1][y]==0 and grid[x][y-1]==0 and grid[x-1][y-1]==0 and  grid[x+1][y+1]==0 and grid[x+1][y]==0 and grid[x+1][y-1]==0 and grid[x][y+1]==0 and grid[x-1][y+1]==0: #the extremities shouldn't be a problem
+				if grid[x+2][y-1]==0 and grid[x+2][y]==0 and grid[x+2][y+1]==0 and grid[x+2][y+2]==0 and grid[x+1][y+2]==0 and grid[x][y+2] ==0 and grid[x-1][y+2]==0:
 					map_division[x-left][y-down]=0 #just to visualize it 
 					if (len(goals_to_reach)== 0): #if there is already something in goals_to_reach, else prob 
-						goals_to_reach.append([x, y])
+						goals_to_reach.append([x+1, y+1])
 					else:
 						goal_too_close=False
 						for i in range(len(goals_to_reach)):
-							if ((abs((y)-goals_to_reach[i][1]) <4) and abs((x)-goals_to_reach[i][0]) <4): #if we already have a goal around this pose
+							if ((abs((y+1)-goals_to_reach[i][1]) <8) and abs((x+1)-goals_to_reach[i][0]) <8): #if we already have a goal around this pose
 								goal_too_close=True
 						if (goal_too_close==False):
-							goals_to_reach.append([x, y])
+							goals_to_reach.append([x+1, y+1])
 							map_division[x-left][y-down]=5
 					#else:
     				#	 goals_to_reach.append([y+1, x+1])
@@ -298,6 +299,11 @@ def move(grid,startX,startY,goalX,goalY):
 
 						# if cell not already filled, put the value of the distance to the cell in the distance_map, then ad the coordinate of the cell in newDist
 						elif distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0:
+							canGo = True
+							for p in range(5):
+								for q in range(5):
+									if  grid[lastDistX[i]+m-1+p-2][lastDistY[i]+n-1+q-2] > 0:
+										canGo = False
 							distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = distance
 							newDistX.append(lastDistX[i]+m-1)
 							newDistY.append(lastDistY[i]+n-1)

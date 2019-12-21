@@ -138,9 +138,15 @@ def wavefront(grid,startX,startY):
 									distance_map[lastDistX[i]+m-1+p-3][lastDistY[i]+n-1+q-3] = len(grid)*len(grid[0])+1
 						# Else if there is no frontier, put the value of the distance to the cell in the distance_map, then ad the coordinate of the cell in newDist
 						elif grid[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0 and distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] == 0:										#########################
-							distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = distance
-							newDistX.append(lastDistX[i]+m-1)
-							newDistY.append(lastDistY[i]+n-1)
+							canGo = True
+							for p in range(7):
+								for q in range(7):
+									if  grid[lastDistX[i]+m-1+p-3][lastDistY[i]+n-1+q-3] > 0:
+										canGo = False
+							if canGo == True:
+								distance_map[lastDistX[i]+m-1][lastDistY[i]+n-1] = distance
+								newDistX.append(lastDistX[i]+m-1)
+								newDistY.append(lastDistY[i]+n-1)
 		# If there is no new cell, then the map is complete
 		if len(newDistX) == 0:																																				### /!\ ### Ca ou goalX=StartX ...
 			mapCompleted = True
@@ -175,7 +181,7 @@ def wavefront(grid,startX,startY):
 	if len(pathX) != 1: 
 		del pathX[-1]
 		del pathY[-1]
-	if len(pathX) > 3:
+	if len(pathX) > 4:
 		del pathX[-1]
 		del pathX[-1]
 		del pathX[-1]

@@ -160,13 +160,22 @@ def deviate(posX,posY):
     if a wall is too close from it it deviates
 
     """
+
     global poseX
     global poseY
     global theta
     global ctrl_c
     #make the robot turn 360 then move straight ahead 
     call_pose()
-    angle_goal = atan2(posY-poseY,posX-poseX)#
+    angle_goal = atan2(posY-poseY,posX-poseX)
+    while abs(poseX-posX) >0.09 or abs(poseY-posY) >0.09:
+        speed.linear.x=-0.2 #correct the angle
+        speed.angular.z=0.0#
+        publish_once_in_cmd(speed)
+        speed.linear.x=-0.2 #correct the angle
+        speed.angular.z=0.0#
+        publish_once_in_cmd(speed)
+            
 
 
     find_request_object.start_frontier=True #Now that the previous pos is reached we can restart the frontier service
@@ -301,7 +310,7 @@ if __name__ == '__main__':
             move_request_object.y_goal=TrajY[traj]
 
             response_move = move_to_goal(move_request_object)
-            if traj%20 ==0:
+            if traj%30 ==0:
                 turn()
             if response_move.success==True and traj==(len_trajectory-1): #once the whole path is done, check point
                 print("success move")
