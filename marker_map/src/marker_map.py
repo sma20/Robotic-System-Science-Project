@@ -129,25 +129,23 @@ def find_pixel(var):
     global value
     global width
     global height
+
     #makes sure that there is data
     if len(var.data) == 0 :
         pass
+
     else:
-        pix = var.data[9]
-        pix_y = var.data[10]
-        width = var.data[1]
-        height = var.data[2]
 
-        angle = -1*((65*(pix/600)) - 28.5)
-        #angle = 28.5 - (65*(pix/600))
+        pix = var.data[9]       # x position of the pixel on the screen
+        pix_y = var.data[10]    # y position of the pixel on the screen
+        width = var.data[1]     # width of the frame
+        height = var.data[2]    # height of the frame
 
+        angle = -1*((65*(pix/600)) - 28.5) #find the angle of the object
 
-        value = int(2.86406132*(angle - 28.5 + 163.5))
+        value = int(2.86406132*(angle - 28.5 + 163.5)) #find the value of the laserscan that correspond to this angle
 
-        #angle_scan = value * 0.351562498 -
-        #print"angle scan", angle_scan
-        #print"angle vision", angle + 28.5 + 98.94 + 7.558594523
-
+        # stock symbol of the object
         if var.data[0] == 49.0:
             symbole = "Biohazard"
 
@@ -175,6 +173,7 @@ def find_pixel(var):
 
         print"\n the symbole found is :", symbole
 
+        # call another function
         rviz_marker(value,angle,symbole)
 
 #############################################################################################################################################################################
@@ -282,13 +281,11 @@ def rviz_marker(value,angle,symbole):
     global y_marker
     global symbol_marker
 
-    sub_odom = rospy.Subscriber("/odom", Odometry, find_position)
-    sub_depth = rospy.Subscriber("/scan", LaserScan, find_symbol)
+    sub_odom = rospy.Subscriber("/odom", Odometry, find_position)   #Subsribe to odometry
+    sub_depth = rospy.Subscriber("/scan", LaserScan, find_symbol)   #Subsribe to laserscan
 
-    sym_x = x + depth*np.cos(theta + angle*np.pi/180)
-    sym_y = y + depth*np.sin(theta + angle*np.pi/180)
-
-
+    sym_x = x + depth*np.cos(theta + angle*np.pi/180) # calculate the x position according to the map
+    sym_y = y + depth*np.sin(theta + angle*np.pi/180) # calculate the y position according to the map
 
 
     #print"\n pix", pix
@@ -297,8 +294,12 @@ def rviz_marker(value,angle,symbole):
     #print"\n depth", depth
     #print" "
 
+    # number of symbols in the buffer
     nb_sample = 5
-    # Initialization of the first symbole founded
+
+
+
+    # empty the buffer if two different symbole are founded
     if len(x_marker) > 0 :
 
         for i in range(len(x_marker) - 1):
@@ -309,31 +310,29 @@ def rviz_marker(value,angle,symbole):
                 x_marker = []
                 y_marker = []
 
+    # initialisation of the buffer with the first value
     if len(x_marker) == 0 and sym_x != 0 and depth != 0 :
 
       x_marker.append(round(sym_x,3))
       y_marker.append(round(sym_y,3))
       symbol_marker.append(symbole)
 
-    # checking if the new symbol published was found before
-    # if not then add it to the array
+    # while the buffer is no empty it takes data
     elif len(x_marker) > 0 and len(x_marker) < nb_sample :
 
       x_marker.append(round(sym_x,3))
       y_marker.append(round(sym_y,3))
       symbol_marker.append(symbole)
 
-        # concatenated every x , y position and the symbole meaning
-
-
-
+    # concatenate ever list into one and print the buffer array
     print("    temp   ")
     symbol_array = np.concatenate((x_marker,y_marker))
     print(symbol_array)
 
 
 
-
+    # once the buffer full it take the mean value of x and y
+    # it initialize the first value of the final matrix 
     if len(x_marker) == nb_sample and len(x_marker_final) == 0:
 
         mean_x = np.sum(x_marker)/len(x_marker)
@@ -344,18 +343,9 @@ def rviz_marker(value,angle,symbole):
         x_marker = []
         y_marker = []
 
-    """
-    if len(x_marker) == 10 and len(x_marker_final) > 0:
 
-        mean_x = np.sum(x_marker)/len(x_marker)
-        mean_y = np.sum(y_marker)/len(y_marker)
-        x_marker_final.append(mean_x)
-        y_marker_final.append(mean_y)
-        symbole_final.append(symbole)
-        x_marker = []
-        y_marker = []
-    """
-
+    # continue to fill the final array with the data from the buffer
+    # the same symbole cannot appear more than 8 time at the same place
     if len(x_marker) == nb_sample and len(x_marker_final) > 0:
 
         mean_x = np.sum(x_marker)/len(x_marker)
@@ -367,14 +357,11 @@ def rviz_marker(value,angle,symbole):
         y_marker = []
         count = 0
         for i in range(len(x_marker_final)):
-            error = 0.8
-            #print(i)
 
             if symbole_final[i] == symbole:
                 count = count + 1
             else:
                 pass
-
 
         if count < 8 :
             x_marker_final.append(mean_x)
@@ -385,6 +372,7 @@ def rviz_marker(value,angle,symbole):
             pass
 
 
+    # create rviz marker and publishes them
     if len(x_marker_final) > 0:
 
         for i in range(len(x_marker_final)):
@@ -392,20 +380,14 @@ def rviz_marker(value,angle,symbole):
             mark = init_marker(i,x_marker_final[i],y_marker_final[i],symbole_final[i])
 
             pub_marker.publish(mark)
-        #print"done !"
 
 
+    # print the final matrix
     print" "
     print("   final     ")
     symbol_array = np.concatenate((x_marker_final,y_marker_final,symbole_final))
     print(symbol_array)
     print" "
-
-
-
-
-
-
 
 
 #############################################################################################################################################################################
@@ -422,7 +404,7 @@ if __name__ == "__main__":
     pub_marker = rospy.Publisher('/visualization_marker', Marker, queue_size=1)
 
 
-
+    #initilisation of all the list
     all_marker = []
     x_marker = []
     y_marker = []
@@ -434,5 +416,5 @@ if __name__ == "__main__":
 
     while not rospy.is_shutdown():
 
-        rospy.sleep(10)
-        sub_pixel = rospy.Subscriber("/objects", Float32MultiArray, find_pixel)
+        rospy.sleep(10) #sleep
+        sub_pixel = rospy.Subscriber("/objects", Float32MultiArray, find_pixel) #we subscribe to Object
