@@ -6,23 +6,17 @@
 
 <launch>
 
-
-
-    
-   
-    
-
-    
-
     
 
     <node name="find_object_2d" pkg="find_object_2d" type="find_object_2d" output="screen">
     <remap from="image" to="/camera/rgb/image_color"/>
     </node>
+    <node name="mapping_marker" pkg="marker_map" type="marker_map.py" output="screen"></node>  
     <!--
     <node pkg="tf" type="static_transform_publisher" name="tf_test" args="0 0 0 0 0 0 map odom 100">
     <node name="rviz" pkg="rviz" type="rviz" output="screen"></node>    
     <arg name="map_file" value="/home/tim/catkin_ws/src/marker_map/map_rviz/final_mapv2.yaml"></arg>
+    
     <node pkg="map_server" type="map_server" name="map_server" args="$(arg map_file)"></node>
     
     
@@ -32,7 +26,7 @@
         args: x y z raz pitch yaw parents child rate
     -->
     
-	
 
 
 </launch>
+
