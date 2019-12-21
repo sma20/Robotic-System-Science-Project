@@ -417,7 +417,7 @@ def rviz_marker(value,angle,symbole):
 
 if __name__ == "__main__":
     # craeting the node
-    rospy.init_node("mapping_corpses")
+    rospy.init_node("mapping_marker")
     # creating subscriber to odometry and laserscan
     pub_marker = rospy.Publisher('/visualization_marker', Marker, queue_size=1)
 
