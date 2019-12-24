@@ -11,10 +11,12 @@ import numpy as np
 from rss_project.srv import *
 from math import atan2
 
+#odometry infos were set to global for simplisity sake.
 poseX=0
 poseY=0
 posew=0
 theta=0
+
 ctrl_c=False
 
 def publish_once_in_cmd(speed):
@@ -38,7 +40,7 @@ def call_pose():
     sub = rospy.Subscriber('/odom', Odometry, getPose)
 
 def getPose(msg):
-    """to get all the pose we need as global, could be done with a return, nut well"""
+    """to get all the pose we need as global, could also be done with a return"""
     global poseX
     global poseY
     global posew
@@ -53,19 +55,27 @@ def first_move():
     global poseX
     global poseY
     global posew
-    #make the robot turn 360 then move straight ahead 
-    call_pose()
-    while poseX <0.3:
+
+    call_pose() #get odom
+    while poseX <0.3: #go straight for 30cm
         speed.linear.x=0.15
         speed.angular.z=0.0
         #pub.publish(speed)
         publish_once_in_cmd(speed)
         rospy.sleep(0.5)
         call_pose()
-        print poseX
-    #duration=0
+        print poseX #just to check
 
-    while abs(posew)>0.5 :
+    while abs(posew)>0.5 : #do half a turn
+        speed.linear.x=0.0 
+        speed.angular.z=0.3
+        #pub.publish(speed)
+        publish_once_in_cmd(speed)
+        rospy.sleep(0.5)
+        call_pose()
+        #print posew
+
+    while abs(posew)<0.98 : #the other half, a bit less than 360
         #rospy.loginfo(duration)
         speed.linear.x=0.0 
         speed.angular.z=0.3
@@ -74,18 +84,7 @@ def first_move():
         rospy.sleep(0.5)
         call_pose()
         #print posew
-        #duration+=1
 
-    while abs(posew)<0.98 :
-        #rospy.loginfo(duration)
-        speed.linear.x=0.0 
-        speed.angular.z=0.3
-        #pub.publish(speed)
-        publish_once_in_cmd(speed)
-        rospy.sleep(0.5)
-        call_pose()
-        #print posew
-        #duration+=1
     rospy.sleep(1)
 
 	 
@@ -93,8 +92,8 @@ def turn():
     """we do a 360
     """
     global posew
-    #make the robot turn 360 then move straight ahead 
-    call_pose()
+    #make the robot turn 360 
+    call_pose() #get odom
     while abs(posew)>0.5 :
         #rospy.loginfo(duration)
         speed.linear.x=0.0 
@@ -103,8 +102,8 @@ def turn():
         publish_once_in_cmd(speed)
         rospy.sleep(0.5)
         call_pose()
-        print posew
-        #duration+=1
+        print posew #just to inform we are at this instruction while checking terminal
+
 
     while abs(posew)<0.98 :
         #rospy.loginfo(duration)
@@ -115,12 +114,12 @@ def turn():
         rospy.sleep(0.5)
         call_pose()
         #print posew
-        #duration+=1
+
 
     rospy.sleep(1)
 
-
-#Risk of infinite loop with the findfrontier sending the same trajectory again
+#function not used
+#problem solved: Risk of infinite loop with the findfrontier sending the same trajectory again
 def move_backward(posX,posY):
     """
     if a wall is too close from it it goes to its previous pose
@@ -130,7 +129,7 @@ def move_backward(posX,posY):
     global poseY
     global theta
     global ctrl_c
-    #make the robot turn 360 then move straight ahead 
+    #make the robot turns then move straight ahead 
     call_pose()
     angle_goal = atan2(posY-poseY,posX-poseX)#
     if ctrl_c==False:
@@ -155,10 +154,11 @@ def move_backward(posX,posY):
     find_request_object.start_frontier=True #Now that the previous pos is reached we can restart the frontier service
     start=True #double security 
 
+
+#function not used
 def deviate(posX,posY):
     """
     if a wall is too close from it it deviates
-
     """
 
     global poseX
@@ -255,17 +255,18 @@ if __name__ == '__main__':
                     start=True
 
                 elif response_move.success==False: #if there is been a wall in front of the robot 
-                    """
-                    if traj-1>=0:
+                    """ First test, go back to last position and redo a wavefront service, Risk of infinite loop with wavefront sending back again same trajectory
+                    if traj-1>=0: #if there is a previous pose in the list
 
                         previousX,previousY=TrajectoryX[traj-1],TrajectoryY[traj-1]
-                        print("previous pose")
+                        print("previous pose") #check
                         print(previousX,previousY)
-                        move_backward(previousX,previousY)
-                    else:
+                        move_backward(previousX,previousY) #go back to it
+                    else: #if there is no previous pose in the list, go back to last pose registered
                         move_backward(previousX,previousY)
                     """    
-                    """
+
+                    """ Second test, a forcefield. Many things to take into account and change, we decided to abort this service
                     try:
                         rospy.wait_for_service('/move_robot_forcefield')# Wait for the service to be running (with launch file)
                         move_forcefield = rospy.ServiceProxy('/move_robot_forcefield', my_goal) # Create connection to service
@@ -278,14 +279,18 @@ if __name__ == '__main__':
                     print("forcefield response:")
                     print(response_move)
                     """
-                    turn()
+
+                    turn() #we do a 360
                     find_request_object.start_frontier=True #we can now redo a findfrontier
-                    start=True
+                    start=True 
                     break
         
     print("everything done, map completed")   
     #Rest of the code when map completed 
     
+
+    #just for security check, to revisit the whole map and check if we got all signs
+    #start third service 
     try:
         rospy.wait_for_service('/check_map')# Wait for the service to be running (with launch file)
         find_goals = rospy.ServiceProxy('/check_map',find_goals) # Create connection to service
@@ -295,24 +300,29 @@ if __name__ == '__main__':
     except rospy.ServiceException, e:
         print ("Service call check map failed: %s"%e)
 
-    find_goals_request_object.start_check=start
+    find_goals_request_object.start_check=start #start service, security check, for it to start only when ordered to.
     response_goals= find_goals(find_goals_request_object)
-    start=False
+    start=False #service called once, now it can't restart
     find_goals_request_object.start_check=start
 
-    TrajX=response_goals.positionsX
+    TrajX=response_goals.positionsX #save the list of X and Y coordinates (in case the service restart anyway, in case it hasn"t been well done. Security
     TrajY=response_goals.positionsY
     len_trajectory=len(TrajX)
-    if len_trajectory>0:
+    if len_trajectory>0: #check if list isn"t empty
 
-        for traj in range(len_trajectory): #for each point until the goal
+        for traj in range(len_trajectory): #for each point until the last goal
             move_request_object.x_goal=TrajX[traj]
             move_request_object.y_goal=TrajY[traj]
 
-            response_move = move_to_goal(move_request_object)
-            if traj%30 ==0:
-                turn()
+            response_move = move_to_goal(move_request_object) #move service called
+            if traj%30 ==0: #every 30moves, turns 360
+                turn() 
+
             if response_move.success==True and traj==(len_trajectory-1): #once the whole path is done, check point
                 print("success move")
-            elif response_move.success==False: #once the whole path is done, check point
+            elif response_move.success==False: #if an objective isn't reachable, we skip it
                 continue
+
+
+
+print("whole checkup done")

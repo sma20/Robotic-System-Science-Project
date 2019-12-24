@@ -9,10 +9,10 @@ from rss_project.srv import my_goal, my_goalResponse
 #import time
 
 #initialization, just to be able to use them wherever they are
-#
-x= 0.0# not sure they are read
-y= 0.0#
-theta=0.0#
+
+x= 0.0
+y= 0.0
+theta=0.0
 already_visited=0
 #now=rospy.Time.now()
 #print("check")#
@@ -20,56 +20,59 @@ already_visited=0
 class movetogoal():
 
     def __init__(self,x_goal,y_goal):
-        self.pub= rospy.Publisher("/cmd_vel_mux/input/teleop",Twist,queue_size=1)#
+        self.pub= rospy.Publisher("/cmd_vel_mux/input/teleop",Twist,queue_size=1)
         self.goal_x= x_goal #my goal position
         self.goal_y=y_goal
 
         self.ctrl_c = False #to exit
-        self.speed=Twist()#
+        self.speed=Twist()
         self.rate=rospy.Rate(4) #to give time to the robot to proess instructions
         self.goal= Point()#to give the arrival point
         self.success=False
         rospy.on_shutdown(self.shutdownhook)
         self.sub=rospy.Subscriber("/scan",LaserScan,self.callback)
     
-    def callback(self,LaserScan):
-        global already_visited
+    def callback(self,LaserScan):  #Check if there is walls in trajectory, security check
+        global already_visited 
+
         if self.ctrl_c==False:
-            #ranges=LaserScan.ranges[:]
-            #print("-------------------------------------------------------------------------")
-            lenght=len(LaserScan.ranges[:])
-            #ranges=LaserScan.ranges[:]
-            ranges= LaserScan.ranges[80:lenght-80] #real robot
-            #print ranges[:]
+            #ranges=LaserScan.ranges[:] #gazebo robot
+
+            lenght=len(LaserScan.ranges[:]) #get the lenght of the scans
+            ranges= LaserScan.ranges[80:lenght-80] #real robot, it sees itself on the extremities (camera fixed in front of the robot)
+            #tried to do it with matrixes, faster
+	    #print ranges[:]
             #check=any(ranges[:]<0.2 and ranges[:]>0.05)
             #if any(t<0.5 and t>0.05 for t in ranges[:]) :  #real robot 0.2 #gazebo:0.5
             #init+=1
+
             init=0
-            
             for t in range(len(ranges)):
-                if (ranges[t]<0.1 and ranges[t]>0.05):
+                if (ranges[t]<0.1 and ranges[t]>0.05): #to consider the noise on the scan result
                     init+=1
             #print init
-            if init>55 and already_visited<15:
+
+            if init>55 and already_visited<25: #we try 15 times to pass the obstacle before sending a failure response
                 
                 if (self.goal_x>0):
-                    self.goal_x= self.goal_x+0.2 #new goal
+                    self.goal_x= self.goal_x+0.3 #new goal
                 else: 
-                    self.goal_x= self.goal_x-0.2 #new goal
+                    self.goal_x= self.goal_x-0.3 #new goal
 
                 if (self.goal_y>0):
                     self.goal_y=self.goal_y+0.2
                 else:
                     self.goal_y= self.goal_y-0.2 #new goal
-                self.go_back_a_bit()
+                self.go_back_a_bit() 
                 already_visited+=1
-                print("visited the scan houlalala, excuse my french")
+                print("houlalala, excuse my french")
                 print(already_visited)
 
-            elif init>55 and already_visited>=15:
-                print("IM THERRREEE GGUUUYYYYSS!!")
+            elif init>55 and already_visited>=25: #if we tried this many times without success, then we suspend the service
+                print("WHAT YOU DOING GGUUUYYYYSS??!!")
                 print(already_visited)
                 already_visited=0
+
                 self.go_back_a_bit()
                 self.success=False
                 self.stoprobot()
