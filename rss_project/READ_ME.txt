@@ -20,6 +20,3 @@ SRV:
 find_frontier.srv: related to map.py (wait for signal to start, send back a trajectory)
 my_goal.srv: related to move.py (wait for coordinates, send back state of the service (success, fail))
 find_goals.srv: related to check_final_map.py (wait for signal to start, send back a trajectory)
-
-
-Image detection
