@@ -18,7 +18,7 @@ reducedSizeX = 600	# size of the map once reduced in px 600px <-> 30m
 reducedSizeY = 600
 
 cell_size = 2
-"""
+""" test with another map, the first one of the arena
 resolution = 0.05	# resolution of the image in m/px
 offsetX = -13.8#-15		# offset of the reduced map
 offsetY = -15.4#-15
@@ -27,6 +27,7 @@ reducedSizeY = 544 #size of the map once reduced in px 100px<->5.2m
 fullSizeX = 544	# Size in pixel of the map 4000px <-> 200m
 fullSizeY = 544 #Size in pixel of the map 544px <-> 27.2m
 """
+#odometry
 poseX=0
 poseY=0
 
@@ -47,20 +48,18 @@ class get_final_map():
 		#self.pub= rospy.Publisher("/project_g",the_map,queue_size=10)
 
 
-	def my_return(self):
+	def my_return(self): 
 		time_begin = rospy.Time.now()
-		if self.start==True:
+		if self.start==True: # if the service sent the order to start
 			doneOnce=False
-
-			if doneOnce==False:
+			if doneOnce==False: #we start those callback only once
 				sub2=rospy.Subscriber('/odom', Odometry, self.callback_odom)
 				sub = rospy.Subscriber('/map', OccupancyGrid, self.callback)
 				doneOnce=True
-				print("in")
+				print("in")#check
 			while self.done==False:
-				#print("b")
-				check=1
-			"""
+				check=1 #just so it isn't empty
+			""" in case it was too long, done because of bugs resolved now
 			while self.pathX==[]:
 				time_end = rospy.Time.now()
 				if (time_end-time_begin).to_sec()> 10:
@@ -70,42 +69,44 @@ class get_final_map():
 		
 		return self.pathX, self.pathY	
 			
-	def callback_odom(self,msg):
+	def callback_odom(self,msg): #get odometry
 		if self.start==True:
 			global poseX
 			global poseY
 			poseX,poseY=convert_xy_to_px(msg.pose.pose.position.x,msg.pose.pose.position.y)	 		
 
 
-	def callback(self,msg):
+	def callback(self,msg): #get trajectoy
 		global poseX
 		global poseY
-		fpathX,fpathY=[],[]
+		fpathX,fpathY=[],[] #final_path lists
 		if self.start==True:
 			print ("on it")
-			grid_px = msg.data
+			grid_px = msg.data  #data is the map 
 			grid_2D = convert_1D_to_2D(grid_px)
 			coastmap = create_final_coastmap(grid_2D)
-			startx=poseX
+			
+			startx=poseX #we get the position of the robot
 			starty=poseY
-			print (startx,starty)
-			goals=map_division(coastmap,startx,starty)
-			if len(goals)>0:
+			print (startx,starty) #check
+			
+			goals=map_division(coastmap,startx,starty) #we select a bunch of goals to travel through
+			if len(goals)>0: #check if list is empty or not
 				#print("still in")
 				for g in range(len(goals)):
 					#print(g)
 					pathX,pathY=move(coastmap,startx,starty,goals[g][0],goals[g][1])
-					fpathX.extend(pathX)
-					#fpathX.extend([1000])
+					fpathX.extend(pathX) #each new trajectory from 1goal to the next is added to he same list 
+					#fpathX.extend([1000]) #at first intended to turn 360 after each goal reached
 					fpathY.extend(pathY)
 					#fpathY.extend([1000])
 
-					shapeX=np.shape(fpathX)
+					#shapeX=np.shape(fpathX) 
 					#print("shapeX")
 					#print(shapeX)
-					#self.pathX.reshape(1,shapeX[0]*shapeX[1])
-					startx,starty=goals[g][0],goals[g][1]
-				self.pathX=fpathX
+					#self.pathX.reshape(1,shapeX[0]*shapeX[1]) #resolved
+					startx,starty=goals[g][0],goals[g][1] #first starting point, odometry, then the last goal reached
+				self.pathX=fpathX #update full path with new completed list
 				self.pathY=fpathY
 		
 
@@ -136,7 +137,6 @@ def convert_1D_to_2D(data1D):
 	return grid
 	
 # Create a coast map from the complete map
-# It regroups pixels to form a bigger cell, and then 
 def create_final_coastmap(grid):
  
 	coastmap = np.zeros((len(grid)/cell_size,len(grid[0])/cell_size))
@@ -167,7 +167,9 @@ def create_final_coastmap(grid):
 	"""
 	return coastmap
 
-#get extremities of the map
+#get extremities of the map with the odometry as starting point
+# then It regroups cells to form bigger cells, and check if the selected cell isn't close from another goal already selected before chosing it as new goal to reach
+#could still be optimised.
 def map_division(grid,startX,startY):
     
 	searchx=0
@@ -213,34 +215,33 @@ def map_division(grid,startX,startY):
 			if grid[startX][startY+searchy+4]>=0:
 				searchx+=4
 
-
 	xlen=(right-left)
 	ylen=(up-down)
 	print(right,left,up,down)
 	#if ((up-down) < (left-right)): #useless actually
-	map_division = np.zeros((xlen,ylen))	# (x,y)
+	map_division = np.zeros((xlen,ylen)) # (x,y)
 	for x in range(left, right):
 		for y in range(down,up):  			
-			
+			#check if a bunch of cells are all free (4x4 cells)
 			if grid[x][y]==0 and grid[x-1][y]==0 and grid[x][y-1]==0 and grid[x-1][y-1]==0 and  grid[x+1][y+1]==0 and grid[x+1][y]==0 and grid[x+1][y-1]==0 and grid[x][y+1]==0 and grid[x-1][y+1]==0: #the extremities shouldn't be a problem
 				if grid[x+2][y-1]==0 and grid[x+2][y]==0 and grid[x+2][y+1]==0 and grid[x+2][y+2]==0 and grid[x+1][y+2]==0 and grid[x][y+2] ==0 and grid[x-1][y+2]==0:
 					map_division[x-left][y-down]=0 #just to visualize it 
 					if (len(goals_to_reach)== 0): #if there is already something in goals_to_reach, else prob 
 						goals_to_reach.append([x+1, y+1])
-					else:
+					else: #if we have registered some goals then
 						goal_too_close=False
-						for i in range(len(goals_to_reach)):
+						for i in range(len(goals_to_reach)): #check if the point selected isn't too close from a previous goal
 							if ((abs((y+1)-goals_to_reach[i][1]) <8) and abs((x+1)-goals_to_reach[i][0]) <8): #if we already have a goal around this pose
 								goal_too_close=True
 						if (goal_too_close==False):
 							goals_to_reach.append([x+1, y+1])
-							map_division[x-left][y-down]=5
+							map_division[x-left][y-down]=5 #to check visually
 					#else:
     				#	 goals_to_reach.append([y+1, x+1])
 				#else: 
-				#	map_division[x-left][y-down]=1 #we will be missing some walls
+				#	map_division[x-left][y-down]=1 #we will be missing some walls, visually
 			else:
-				map_division[x-left][y-down]=1 #we will be missing some walls
+				map_division[x-left][y-down]=1 #we will be missing some walls, visually
 	"""
 	print("map division \n")		
 	for i in range(xlen):#startY,goalX):
@@ -249,7 +250,6 @@ def map_division(grid,startX,startY):
 		print(" ")
 	"""
 	
-
 	#print("goals_to reach")
 	#print(goals_to_reach)
 	print(np.shape(goals_to_reach))
@@ -257,13 +257,12 @@ def map_division(grid,startX,startY):
 	#If we want we can change the goals position from the closest to the further away to optimize
 	#For this we do x+y of each point and get them in an order (the lowest to highest value for ex)
 	
-
 	return goals_to_reach
 
-
+#decide the trajectory from one goal to the next with the wavefront technique
 def move(grid,startX,startY,goalX,goalY):
 
-	distance_map = np.zeros((len(grid),len(grid[0])))	# create the map which takes the distance values from the start point. All the non calculated cells are set at 0.
+	distance_map = np.zeros((len(grid),len(grid[0])))# create the map which takes the distance values from the start point. All the non calculated cells are set at 0.
 	distance_map[startX][startY] = -1	# Initialize the start at -1
 	lastDistX = [startX]
 	lastDistY = [startY]#[38]
