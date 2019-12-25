@@ -17,7 +17,7 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
 
-
+# initialization of all the variables
 x = 0.0
 y = 0.0
 theta = 0.0
@@ -41,6 +41,9 @@ symbole = ""
 #############################################################################################################################################################################
 
 def find_symbol(arg):
+    """
+    this callback function if to retrieve the depth from the lidar
+    """
 
     global depth
 
@@ -51,6 +54,9 @@ def find_symbol(arg):
 
 
 def getImage(data):
+    """
+    funtion to get the image and differentiate colours when it's needed
+    """
 
     global symbole
 
@@ -101,6 +107,9 @@ def getImage(data):
 #############################################################################################################################################################################
 
 def find_position(arg):
+    """
+    callback function to get the position of the robot in space
+    """
 
     global x
     global y
@@ -133,7 +142,7 @@ def find_pixel(var):
     #makes sure that there is data
     if len(var.data) == 0 :
         pass
-
+    
     else:
 
         pix = var.data[9]       # x position of the pixel on the screen
