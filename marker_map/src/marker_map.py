@@ -175,10 +175,10 @@ def find_pixel(var):
 
         elif var.data[0] == 55.0 or var.data[0] == 56.0:
 
-            """
+            
             img = rospy.Subscriber("/camera/rgb/image_color", Image, getImage)
-            """
-            symbole = "dead_worker"
+            
+            
 
         print"\n the symbole found is :", symbole
 
