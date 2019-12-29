@@ -9,9 +9,9 @@ To use it:
  Roslaunch rss_project srv_server_moverobot.launch
  Rosrun gmapping scan:= hokuyo_laser or scan
  
- image processing :
+ Find Marker :
  
- roslaunch marker_map launch.launch
-    load the rightful data set on find 2d object
-    click on "update object"
-    add the Visual MArker in Rviz
+    1. roslaunch marker_map launch.launch
+    2. load the rightful data set from the folder "image" on find 2d object
+    3. click on "update object"
+    4. add the Visual Marker on Rviz
