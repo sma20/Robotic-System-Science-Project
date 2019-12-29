@@ -32,7 +32,8 @@ To use it:
   3. catkin_make --only-pkg-with-deps rss_project
   4. add permission to all the py files, using "chmod +x [file.py]" command
  
- Roslaunch rss_project 
+ Roslaunch rss_project srv_server_moverobot.launch
+ Rosrun gmapping scan:= hokuyo_laser or scan
  
  image processing :
  
