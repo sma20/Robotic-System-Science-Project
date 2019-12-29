@@ -1,4 +1,0 @@
-int32 x_goal
-int32 y_goal   #goal position x and y
----
-bool success         # Did it achieve it?
