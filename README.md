@@ -1,3 +1,12 @@
+USE:
+Turtlebot
+ROS -kinetic
+
+
+This turtlebot is meant to navigate in an unknown environment (closed), map the whole place and detect some specific symbols with find_object_2D. 
+The mapping use a D* strategy. 
+
+
 
 Navigation :
 
